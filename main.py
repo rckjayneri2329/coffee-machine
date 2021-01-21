@@ -1,8 +1,8 @@
 from data import COINS, MENU, resources
 
-machine_offline = False
-resource_checked = ''
+machine_online = True
 monetary_value = 0
+resource_checked = []
 
 
 def add_profit(order_cost):
@@ -10,26 +10,21 @@ def add_profit(order_cost):
 
 
 def deduct_resources(order_type):
-    for ingredient in MENU[order_type]['ingredients']:
-        resources[ingredient] -= MENU[order_type]['ingredients'][ingredient]
+    for ingredient in MENU[order_type]["ingredients"]:
+        resources[ingredient] -= MENU[order_type]["ingredients"][ingredient]
 
 
-def make_coffee():
-    print("make coffee")
-
-
-def is_resources_sufficient(order_ingredients):
-    enough_resources = True
+def check_resources(order_ingredients):
+    insufficient_ingredients = []
     for ingredient in order_ingredients:
         if resources[ingredient] < order_ingredients[ingredient]:
-            enough_resources = False
-            break
-    return enough_resources
+            insufficient_ingredients.append(ingredient)
+    result_message = ', '.join(insufficient_ingredients)
+    return result_message
 
 
 def process_coins():
     print("Please insert coins.")
-    inserted_coins = 0
     total_coins = 0
     for coin_type in COINS:
         inserted_coins = float(input(f"how many {coin_type}?: "))
@@ -37,48 +32,60 @@ def process_coins():
     return total_coins
 
 
-def check_transaction(inserted_coins_total, order_type):
-    result = inserted_coins_total - MENU[order_type]['cost']
+def make_coffee(inserted_coins_total, order_type):
+    change = inserted_coins_total - MENU[order_type]["cost"]
+    result_message = ""
+    if change > 0:
+        result_message = f"Here is ${change:.2f} in change.\n"
+    result_message += f"Here is your {order_type} ☕. Enjoy!"
 
-    if inserted_coins_total < MENU[order_type]["cost"]:
-        result_message = "Sorry that's not enough money. Money refunded."
-    else:
-        if inserted_coins_total > MENU[order_type]["cost"]:
-            change = inserted_coins_total - MENU[order_type]['cost']
-            result_message = f"Here is ${change:.2f} in change.\n"
-        result_message += f"Here is your {order_type} ☕. Enjoy!"
-
-    return result
+    return result_message
 
 
-# TODO: 1. Prompt user by asking “What would you like? (espresso/latte/cappuccino):”
-order = input("What would you like? (espresso/latte/cappuccino): ").lower()
+def is_transaction_successful(inserted_coins_total, order_type):
+    successful_transaction = True
+    result = inserted_coins_total - MENU[order_type]["cost"]
 
-# TODO: 2. Turn off the Coffee Machine by entering “off” to the prompt.
-if order == 'off':
-    machine_offline = True
+    if result < 0:
+        successful_transaction = False
 
-# TODO: 3. Print report.
-elif order == 'report':
+    return successful_transaction
+
+
+def report_resource():
     for resource in resources:
         print(f"{resource.title()}: {resources[resource]}")
 
-else:
-    if order in MENU:
 
-        # TODO: 4. Check resources sufficient.
-        if is_resources_sufficient(MENU[order]["ingredients"]):
+while machine_online:
 
-            # TODO: 5. Process coins.
-            monetary_value = process_coins()
-            print(f"{monetary_value:.2f}")
+    order = input("What would you like? (espresso/latte/cappuccino): ").lower()
 
-            # TODO: 6. Check transaction successful.
-            print(check_transaction(monetary_value, order))
-        else:
-            print(f"Sorry there is not enough {resource_checked}.")
-        print(MENU[order]["ingredients"])
-        print(resources)
-        print(resource_checked)
+    if order == "off":
+        machine_online = False
+
+    elif order == "report":
+        report_resource()
+
     else:
-        print("Invalid choice")
+        if order in MENU:
+
+            resource_checked = check_resources(MENU[order]["ingredients"])
+            if resource_checked == "":
+
+                monetary_value = process_coins()
+                print(f"{monetary_value:.2f}")
+
+                if is_transaction_successful(monetary_value, order):
+                    add_profit(MENU[order]["cost"])
+
+                    print(make_coffee(monetary_value, order))
+
+                    deduct_resources(order)
+
+                else:
+                    print("Sorry that's not enough money. Money refunded.")
+            else:
+                print(f"Sorry there is not enough {resource_checked}.")
+        else:
+            print("Invalid choice")

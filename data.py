@@ -37,4 +37,3 @@ resources = {
     "coffee": 100,
     "money": 0,
 }
-
